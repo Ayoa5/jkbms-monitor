@@ -15,6 +15,7 @@ import android.content.Context
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import com.jkbms.monitor.model.BmsData
 import com.jkbms.monitor.protocol.JkProtocol
 import java.util.UUID
@@ -55,12 +56,19 @@ class BleManager(private val context: Context) {
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult?) {
             val r = result ?: return
-            val name = try { r.device.name } catch (_: Exception) { null } ?: return
-            if (!name.contains("JK", true) && !name.contains("BMS", true) && !name.contains("bms", true)) return
+            // 未连接时 device.name 常为 null，必须优先取广播包里的名字
+            val name = r.scanRecord?.deviceName?.takeIf { it.isNotBlank() }
+                ?: try { r.device.name } catch (_: Exception) { null }
+            Log.d("JkBmsBle", "scan: name=$name addr=${r.device.address} rssi=${r.rssi}")
+            if (name == null) return
+            // 先不过滤 JK/BMS，列出所有有名字的 BLE 设备，用户自行选 JK- 开头的
             found[r.device.address] = DeviceItem(name, r.device.address, r.rssi)
             onDeviceList?.invoke(found.values.toList())
         }
-        override fun onScanFailed(errorCode: Int) { onStatus?.invoke("扫描失败：$errorCode") }
+        override fun onScanFailed(errorCode: Int) {
+            Log.d("JkBmsBle", "scan failed: $errorCode")
+            onStatus?.invoke("扫描失败：$errorCode")
+        }
     }
 
     fun startScan() {
