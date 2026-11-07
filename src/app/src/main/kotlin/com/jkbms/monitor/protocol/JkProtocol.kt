@@ -21,14 +21,20 @@ import com.jkbms.monitor.model.BmsData
  */
 object JkProtocol {
 
-    /** JK02 请求 cell-info 帧。len=0x00 表示按命令固定长度，CRC 先置 0 由设备容错。 */
-    val REQUEST_CELL_INFO: ByteArray = byteArrayOf(
-        0xAA.toByte(), 0x55, 0x90.toByte(), 0xEB.toByte(),
-        0x00, 0x02,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00
-    )
+    /** JK02 请求 cell-info 帧（20 字节定长）：AA 55 90 EB | 96 | 00 | value(4) | 填充(9) | CRC。
+     *  命令码是 0x96（COMMAND_CELL_INFO），不是 0x02（0x02 是响应帧的记录类型）。 */
+    val REQUEST_CELL_INFO: ByteArray = buildRequestFrame()
+
+    private fun buildRequestFrame(): ByteArray {
+        val f = ByteArray(20)
+        f[0] = 0xAA.toByte(); f[1] = 0x55; f[2] = 0x90.toByte(); f[3] = 0xEB.toByte()
+        f[4] = 0x96.toByte()
+        f[5] = 0x00
+        var crc = 0
+        for (i in 0 until 19) crc = (crc + (f[i].toInt() and 0xFF)) and 0xFF
+        f[19] = crc.toByte()
+        return f
+    }
 
     /** 从缓存里尝试拼出一帧：返回 (完整帧, 剩余未消费字节)。 */
     fun extractFrame(buffer: ByteArray): ByteArray? {
@@ -51,8 +57,8 @@ object JkProtocol {
     }
 
     /** 解析 cell-info 帧。is32S: 固件 sw>=11 走 32S offset (+32)。 */
-    fun parseCellInfo(frame: ByteArray, is32S: Boolean): BmsData? {
-        val off = if (is32S) 32 else 0
+    fun parseCellInfo(frame: ByteArray, is32S: Boolean? = null): BmsData? {
+        val off = if (is32S ?: (frame.size > 250)) 32 else 0
         if (frame.size < 190 + off) return null
         val cmd = frame[5].toInt() and 0xFF
         if (cmd != 0x02) return null

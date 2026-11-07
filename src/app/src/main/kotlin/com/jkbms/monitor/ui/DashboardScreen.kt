@@ -114,7 +114,8 @@ fun DashboardScreen(vm: BmsViewModel) {
 private fun ConnectPanel(vm: BmsViewModel) {
     MiCard(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
-            Text("未连接 BMS", fontSize = 15.sp, fontWeight = FontWeight.Medium)
+            val connected = vm.statusText.contains("已连接") || vm.statusText.contains("发现服务") || vm.statusText.contains("等待")
+            Text(if (connected) "已连接，等待数据…" else "未连接 BMS", fontSize = 15.sp, fontWeight = FontWeight.Medium)
             Spacer(Modifier.height(4.dp))
             Text(
                 "点击右上角「扫描」，搜索附近名称含 JK / BMS 的设备，然后点「连接」。",

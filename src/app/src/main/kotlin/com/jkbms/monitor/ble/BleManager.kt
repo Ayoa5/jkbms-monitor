@@ -197,7 +197,8 @@ class BleManager(private val context: Context) {
             if (rx.size < total) return
             val frame = ByteArray(total) { rx[it] }
             repeat(total) { if (rx.isNotEmpty()) rx.removeAt(0) }
-            JkProtocol.parseCellInfo(frame, is32S)?.let { onData?.invoke(it) }
+            Log.d("JkBmsBle", "frame len=${frame.size} type=${frame.getOrNull(5)}")
+            JkProtocol.parseCellInfo(frame)?.let { onData?.invoke(it) }
         }
     }
 }
