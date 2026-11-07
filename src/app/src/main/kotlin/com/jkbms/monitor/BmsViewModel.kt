@@ -19,8 +19,11 @@ class BmsViewModel(app: Application) : AndroidViewModel(app) {
     var devices by mutableStateOf<List<BleManager.DeviceItem>>(emptyList())
         private set
     var fullRangeKm by mutableStateOf(100f)
+    var logs by mutableStateOf<List<String>>(emptyList())
+        private set
 
     init {
+        ble.onLog = { msg -> logs = (logs + msg).takeLast(120) }
         ble.onStatus = { statusText = it }
         ble.onDeviceList = { devices = it }
         ble.onData = { data = it }

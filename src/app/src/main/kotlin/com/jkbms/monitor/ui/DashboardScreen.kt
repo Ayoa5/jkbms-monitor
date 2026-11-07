@@ -102,6 +102,7 @@ fun DashboardScreen(vm: BmsViewModel) {
                 TempProtectRow(data)
                 Footer(data)
             }
+            LogPanel(vm.logs)
         }
     }
 
@@ -343,5 +344,19 @@ private fun Footer(data: BmsData) {
         Text("循环 ${data.cycleCount}", fontSize = 11.sp, color = Gray)
         Text("SOH %.0f%%".format(data.sohPercent), fontSize = 11.sp, color = Gray)
         Text("满充 %.1f Ah".format(data.fullAh), fontSize = 11.sp, color = Gray)
+    }
+}
+
+@Composable
+private fun LogPanel(logs: List<String>) {
+    if (logs.isEmpty()) return
+    MiCard(modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(12.dp)) {
+            Text("BLE 日志（${logs.size}）", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Gray)
+            Spacer(Modifier.height(6.dp))
+            logs.takeLast(22).forEach { line ->
+                Text(line, fontSize = 10.sp, color = Gray)
+            }
+        }
     }
 }
