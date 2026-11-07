@@ -91,7 +91,7 @@ object JkProtocol {
             temp1 = t1,
             temp2 = t2,
             cellVoltages = cells,
-            cycleCount = cycles,
+            cycleCount = cycles.toInt(),
             sohPercent = soh.toFloat(),
             charging = current > 0.3f,
             discharging = current < -0.3f,
