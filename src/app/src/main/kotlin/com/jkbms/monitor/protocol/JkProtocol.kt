@@ -23,12 +23,13 @@ object JkProtocol {
 
     /** JK02 请求 cell-info 帧（20 字节定长）：AA 55 90 EB | 96 | 00 | value(4) | 填充(9) | CRC。
      *  命令码是 0x96（COMMAND_CELL_INFO），不是 0x02（0x02 是响应帧的记录类型）。 */
-    val REQUEST_CELL_INFO: ByteArray = buildRequestFrame()
+    val REQUEST_CELL_INFO: ByteArray = buildRequestFrame(0x96)
+    val REQUEST_DEVICE_INFO: ByteArray = buildRequestFrame(0x97)
 
-    private fun buildRequestFrame(): ByteArray {
+    private fun buildRequestFrame(cmd: Int): ByteArray {
         val f = ByteArray(20)
         f[0] = 0xAA.toByte(); f[1] = 0x55; f[2] = 0x90.toByte(); f[3] = 0xEB.toByte()
-        f[4] = 0x96.toByte()
+        f[4] = cmd.toByte()
         f[5] = 0x00
         var crc = 0
         for (i in 0 until 19) crc = (crc + (f[i].toInt() and 0xFF)) and 0xFF

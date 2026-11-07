@@ -192,8 +192,9 @@ class BleManager(private val context: Context) {
         handler.removeCallbacksAndMessages(null)
         val runnable = object : Runnable {
             override fun run() {
+                write(JkProtocol.REQUEST_DEVICE_INFO)
                 write(JkProtocol.REQUEST_CELL_INFO)
-                handler.postDelayed(this, 1500)
+                handler.postDelayed(this, 2000)
             }
         }
         handler.postDelayed(runnable, 400)
