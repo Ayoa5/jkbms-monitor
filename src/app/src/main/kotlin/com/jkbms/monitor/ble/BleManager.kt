@@ -127,6 +127,7 @@ class BleManager(private val context: Context) {
                 try { g.requestMtu(517) } catch (_: Exception) {}
                 g.discoverServices()
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+                handler.removeCallbacksAndMessages(null)
                 onStatus?.invoke("连接已断开")
             }
         }
