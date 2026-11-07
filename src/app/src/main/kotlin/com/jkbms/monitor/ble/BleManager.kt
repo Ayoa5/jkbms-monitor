@@ -194,9 +194,10 @@ class BleManager(private val context: Context) {
         handler.removeCallbacksAndMessages(null)
         val runnable = object : Runnable {
             override fun run() {
+                // 官方序列：先 0x97(设备信息)，等 500ms 再发 0x96(cell info)，BMS 才会爆发 0x01+0x03+0x02
                 write(JkProtocol.REQUEST_DEVICE_INFO)
-                write(JkProtocol.REQUEST_CELL_INFO)
-                handler.postDelayed(this, 2000)
+                handler.postDelayed({ write(JkProtocol.REQUEST_CELL_INFO) }, 500)
+                handler.postDelayed(this, 2500)
             }
         }
         handler.postDelayed(runnable, 400)
