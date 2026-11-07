@@ -49,6 +49,7 @@ class BleManager(private val context: Context) {
     private val rx = ArrayList<Byte>()
     private var gatt: BluetoothGatt? = null
     private var notifyChar: BluetoothGattCharacteristic? = null
+    private var writeChar: BluetoothGattCharacteristic? = null
     private var scanning = false
 
     private fun log(msg: String) {
@@ -135,10 +136,15 @@ class BleManager(private val context: Context) {
         override fun onServicesDiscovered(g: BluetoothGatt, status: Int) {
             log("服务发现 status=$status")
             val service = g.getService(SERVICE_UUID)
+            service?.characteristics?.forEach { c -> log("char ${c.uuid} props=${c.properties}") }
             val ch = service?.getCharacteristic(CHAR_UUID)
             log("service=${service != null} char=${ch != null}")
             if (ch == null) { onStatus?.invoke("未找到 0xFFE0/0xFFE1"); log("未找到特征"); return }
             notifyChar = ch
+            writeChar = service?.characteristics?.firstOrNull {
+                (it.properties and (BluetoothGattCharacteristic.PROPERTY_WRITE or BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE)) != 0
+            } ?: ch
+            log("writeChar=${writeChar?.uuid}")
             val ok = g.setCharacteristicNotification(ch, true)
             log("setNotification=$ok")
             val cccd = ch.getDescriptor(CCCD_UUID)
@@ -195,19 +201,19 @@ class BleManager(private val context: Context) {
 
     private fun write(bytes: ByteArray) {
         val g = gatt ?: return
-        val ch = notifyChar ?: return
+        val ch = writeChar ?: notifyChar ?: return
         try {
             if (Build.VERSION.SDK_INT >= 33) {
-                g.writeCharacteristic(ch, bytes, BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
+                g.writeCharacteristic(ch, bytes, BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE)
             } else {
                 @Suppress("DEPRECATION")
                 ch.value = bytes
                 @Suppress("DEPRECATION")
-                ch.writeType = BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
+                ch.writeType = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
                 @Suppress("DEPRECATION")
                 g.writeCharacteristic(ch)
             }
-            log("写请求 ${hex(bytes, 20)}")
+            log("写请求(${ch.uuid.toString().takeLast(8)}) ${hex(bytes, 20)}")
         } catch (e: Exception) {
             log("写请求失败 ${e.message}")
         }
