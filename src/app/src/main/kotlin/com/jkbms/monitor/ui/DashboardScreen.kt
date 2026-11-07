@@ -3,6 +3,7 @@
 package com.jkbms.monitor.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,23 +13,35 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.jkbms.monitor.BmsViewModel
 import com.jkbms.monitor.model.BmsData
 import com.jkbms.monitor.model.remainingRangeKm
 
@@ -52,10 +65,25 @@ private fun MiCard(modifier: Modifier = Modifier, content: @Composable () -> Uni
 }
 
 @Composable
-fun DashboardScreen(data: BmsData, fullRangeKm: Float) {
-    val rangeKm = remainingRangeKm(data.socPercent, fullRangeKm)
+fun DashboardScreen(vm: BmsViewModel) {
+    val data = vm.data
+    var showRangeDialog by remember { mutableStateOf(false) }
+
     Scaffold(
-        topBar = { TopAppBar(title = { Text("极空BMS") }) }
+        topBar = {
+            TopAppBar(
+                title = { Text("极空BMS") },
+                actions = {
+                    Text(vm.statusText, fontSize = 12.sp, color = Gray)
+                    Spacer(Modifier.width(8.dp))
+                    if (data != null) {
+                        TextButton(onClick = { vm.disconnect() }) { Text("断开") }
+                    } else {
+                        TextButton(onClick = { vm.startScan() }) { Text("扫描") }
+                    }
+                }
+            )
+        }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -65,17 +93,91 @@ fun DashboardScreen(data: BmsData, fullRangeKm: Float) {
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            HeroCard(data, rangeKm, fullRangeKm)
-            MetricRow(data)
-            CellCard(data)
-            TempProtectRow(data)
-            Footer(data)
+            if (data == null) {
+                ConnectPanel(vm)
+            } else {
+                HeroCard(data, vm.fullRangeKm) { showRangeDialog = true }
+                MetricRow(data)
+                CellCard(data)
+                TempProtectRow(data)
+                Footer(data)
+            }
+        }
+    }
+
+    if (showRangeDialog) {
+        RangeDialog(vm) { showRangeDialog = false }
+    }
+}
+
+@Composable
+private fun ConnectPanel(vm: BmsViewModel) {
+    MiCard(modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp)) {
+            Text("未连接 BMS", fontSize = 15.sp, fontWeight = FontWeight.Medium)
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "点击右上角「扫描」，搜索附近名称含 JK / BMS 的设备，然后点「连接」。",
+                fontSize = 12.sp,
+                color = Gray,
+            )
+            if (vm.devices.isNotEmpty()) {
+                Spacer(Modifier.height(10.dp))
+                vm.devices.forEach { d ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { vm.connect(d.address) }
+                            .padding(vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text(d.name, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                            Text(d.address, fontSize = 11.sp, color = Gray)
+                        }
+                        Text("${d.rssi} dBm", fontSize = 11.sp, color = Gray)
+                        Spacer(Modifier.width(10.dp))
+                        Text("连接", fontSize = 13.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium)
+                    }
+                    HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.surfaceVariant)
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun HeroCard(data: BmsData, rangeKm: Float, fullRangeKm: Float) {
+private fun RangeDialog(vm: BmsViewModel, onDismiss: () -> Unit) {
+    var text by remember { mutableStateOf(vm.fullRangeKm.toInt().toString()) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("满电续航里程") },
+        text = {
+            Column {
+                Text("设置满电时能跑多少公里，剩余续航按 SOC 比例实时计算。", fontSize = 12.sp, color = Gray)
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { input -> text = input.filter { it.isDigit() } },
+                    label = { Text("满电可跑 km") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                text.toFloatOrNull()?.let { vm.setFullRange(it) }
+                onDismiss()
+            }) { Text("保存") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } },
+    )
+}
+
+@Composable
+private fun HeroCard(data: BmsData, fullRangeKm: Float, onEditRange: () -> Unit) {
+    val rangeKm = remainingRangeKm(data.socPercent, fullRangeKm)
     MiCard(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
             Row(Modifier.fillMaxWidth()) {
@@ -116,7 +218,12 @@ private fun HeroCard(data: BmsData, rangeKm: Float, fullRangeKm: Float) {
                 Text("%.2f kW".format(data.power / 1000f), fontSize = 12.sp, color = Gray)
             }
             Spacer(Modifier.height(6.dp))
-            Text("满电预设 %.0f km · 点此修改".format(fullRangeKm), fontSize = 11.sp, color = Gray)
+            Text(
+                "满电预设 %.0f km · 点此修改".format(fullRangeKm),
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.clickable { onEditRange() },
+            )
         }
     }
 }

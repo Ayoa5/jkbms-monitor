@@ -1,32 +1,36 @@
 package com.jkbms.monitor
 
+import android.Manifest
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
-import com.jkbms.monitor.model.BmsData
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.LaunchedEffect
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jkbms.monitor.ui.AppTheme
 import com.jkbms.monitor.ui.DashboardScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val sample = BmsData(
-            socPercent = 65.9f,
-            remainingAh = 112.4f,
-            fullAh = 170f,
-            totalVoltage = 52.31f,
-            current = -23.7f,
-            mosTemp = 32.1f,
-            temp1 = 28.5f,
-            temp2 = 29.0f,
-            cellVoltages = List(16) { i -> 3.279f + (i % 5) * 0.003f },
-            cycleCount = 128,
-            sohPercent = 98f,
-            discharging = true,
-        )
         setContent {
             AppTheme {
-                DashboardScreen(data = sample, fullRangeKm = 100f)
+                val vm: BmsViewModel = viewModel()
+                val perms = if (Build.VERSION.SDK_INT >= 31) {
+                    arrayOf(
+                        Manifest.permission.BLUETOOTH_SCAN,
+                        Manifest.permission.BLUETOOTH_CONNECT,
+                    )
+                } else {
+                    arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
+                }
+                val launcher = rememberLauncherForActivityResult(
+                    ActivityResultContracts.RequestMultiplePermissions()
+                ) { }
+                LaunchedEffect(Unit) { launcher.launch(perms) }
+                DashboardScreen(vm)
             }
         }
     }
