@@ -223,11 +223,11 @@ class BleManager(private val context: Context) {
             if (start < 0) { if (rx.size > 4096) rx.clear(); return }
             if (start > 0) repeat(start) { if (rx.isNotEmpty()) rx.removeAt(0) }
             if (rx.size < 6) return
-            val total = 5 + ((rx[4].toInt() and 0xFF) + 1)
+            val total = 7 + (rx[5].toInt() and 0xFF)
             if (rx.size < total) return
             val frame = ByteArray(total) { rx[it] }
             repeat(total) { if (rx.isNotEmpty()) rx.removeAt(0) }
-            log("帧 ${frame.size}B type=${frame.getOrNull(5)}")
+            log("帧 ${frame.size}B type=${frame.getOrNull(4)} ${hex(frame, 20)}")
             JkProtocol.parseCellInfo(frame)?.let { onData?.invoke(it) }
         }
     }

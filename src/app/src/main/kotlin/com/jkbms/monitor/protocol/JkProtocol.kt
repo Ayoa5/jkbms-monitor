@@ -60,7 +60,7 @@ object JkProtocol {
     fun parseCellInfo(frame: ByteArray, is32S: Boolean? = null): BmsData? {
         val off = if (is32S ?: (frame.size > 250)) 32 else 0
         if (frame.size < 190 + off) return null
-        val cmd = frame[5].toInt() and 0xFF
+        val cmd = frame[4].toInt() and 0xFF
         if (cmd != 0x02) return null
 
         val cells = ArrayList<Float>(32)
