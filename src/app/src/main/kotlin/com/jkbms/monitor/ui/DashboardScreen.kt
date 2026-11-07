@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+
 package com.jkbms.monitor.ui
 
 import androidx.compose.foundation.background
@@ -10,10 +12,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,10 +31,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jkbms.monitor.model.BmsData
 import com.jkbms.monitor.model.remainingRangeKm
-import top.yukonga.miuix.kmp.basic.Card
-import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TopAppBar
 
 private val Green = Color(0xFF1D9E75)
 private val GreenDark = Color(0xFF0F6E56)
@@ -35,6 +38,18 @@ private val Red = Color(0xFFA32D2D)
 private val Amber = Color(0xFFBA7517)
 private val Gray = Color(0xFF888780)
 private val Track = Color(0xFFEFEFEF)
+
+private val CardShape = RoundedCornerShape(16.dp)
+
+@Composable
+private fun MiCard(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    Card(
+        modifier = modifier,
+        shape = CardShape,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) { content() }
+}
 
 @Composable
 fun DashboardScreen(data: BmsData, fullRangeKm: Float) {
@@ -61,7 +76,7 @@ fun DashboardScreen(data: BmsData, fullRangeKm: Float) {
 
 @Composable
 private fun HeroCard(data: BmsData, rangeKm: Float, fullRangeKm: Float) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    MiCard(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
             Row(Modifier.fillMaxWidth()) {
                 Column(Modifier.weight(1f)) {
@@ -117,7 +132,7 @@ private fun MetricRow(data: BmsData) {
 
 @Composable
 private fun MetricCard(label: String, value: String, unit: String, modifier: Modifier) {
-    Card(modifier = modifier) {
+    MiCard(modifier = modifier) {
         Column(Modifier.padding(10.dp)) {
             Text(label, fontSize = 11.sp, color = Gray)
             Row(verticalAlignment = Alignment.Bottom) {
@@ -130,7 +145,7 @@ private fun MetricCard(label: String, value: String, unit: String, modifier: Mod
 
 @Composable
 private fun CellCard(data: BmsData) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    MiCard(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("电芯电压 · ${data.cellCount}S", fontSize = 13.sp, fontWeight = FontWeight.Medium)
@@ -206,7 +221,7 @@ private fun TempProtectRow(data: BmsData) {
 
 @Composable
 private fun SmallStat(label: String, value: String, modifier: Modifier, valueColor: Color = Color(0xFF2C2C2A)) {
-    Card(modifier = modifier) {
+    MiCard(modifier = modifier) {
         Row(Modifier.padding(horizontal = 12.dp, vertical = 9.dp).fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(label, fontSize = 11.sp, color = Gray)
             Text(value, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = valueColor)
