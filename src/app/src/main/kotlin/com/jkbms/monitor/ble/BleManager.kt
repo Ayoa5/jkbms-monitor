@@ -40,8 +40,8 @@ class BleManager(private val context: Context) {
     var onStatus: ((String) -> Unit)? = null
     var onData: ((BmsData) -> Unit)? = null
     var onLog: ((String) -> Unit)? = null
-    /** JK-BMS 握手密码（设备密码，默认 12345678，可在设置里改）。 */
-    var handshakePassword: String = "12345678"
+    /** JK-BMS 握手密码（设备密码，用户实测 335058）。 */
+    var handshakePassword: String = "335058"
 
     private val adapter: BluetoothAdapter? =
         (context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager)?.adapter
