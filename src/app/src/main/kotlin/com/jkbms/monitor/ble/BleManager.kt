@@ -40,6 +40,8 @@ class BleManager(private val context: Context) {
     var onStatus: ((String) -> Unit)? = null
     var onData: ((BmsData) -> Unit)? = null
     var onLog: ((String) -> Unit)? = null
+    /** JK-BMS 握手密码（设备密码，默认 12345678，可在设置里改）。 */
+    var handshakePassword: String = "12345678"
 
     private val adapter: BluetoothAdapter? =
         (context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager)?.adapter
@@ -226,10 +228,17 @@ class BleManager(private val context: Context) {
             value[0] == 0xAA.toByte() && value[1] == 0x55.toByte() &&
             value[2] == 0x90.toByte() && value[3] == 0xEB.toByte()
         ) {
-            val n = minOf(value.size, 20)
-            val frame = value.copyOf(n)
-            write(frame)
-            log("回握手 ${hex(frame, 20)}")
+            // 握手帧需带设备密码：AA 55 90 EB C8 01 01 + 12B 密码区 + CRC
+            val f = ByteArray(20)
+            f[0] = 0xAA.toByte(); f[1] = 0x55; f[2] = 0x90.toByte(); f[3] = 0xEB.toByte()
+            f[4] = 0xC8.toByte(); f[5] = 0x01; f[6] = 0x01
+            val pwd = handshakePassword.toByteArray(Charsets.US_ASCII)
+            for (i in pwd.indices) { if (7 + i < 19) f[7 + i] = pwd[i] }
+            var crc = 0
+            for (i in 0 until 19) crc = (crc + (f[i].toInt() and 0xFF)) and 0xFF
+            f[19] = crc.toByte()
+            write(f)
+            log("回握手+密码 ${hex(f, 20)}")
         }
     }
 
