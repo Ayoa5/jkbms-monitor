@@ -168,6 +168,7 @@ class BleManager(private val context: Context) {
 
         override fun onCharacteristicChanged(g: BluetoothGatt, ch: BluetoothGattCharacteristic, value: ByteArray) {
             log("notify ${value.size}B: ${hex(value, 24)}")
+            handleHandshake(value)
             feed(value)
         }
 
@@ -176,6 +177,7 @@ class BleManager(private val context: Context) {
             @Suppress("DEPRECATION")
             val v = ch.value ?: return
             log("notify ${v.size}B: ${hex(v, 24)}")
+            handleHandshake(v)
             feed(v)
         }
     }
@@ -208,6 +210,19 @@ class BleManager(private val context: Context) {
             log("写请求 ${hex(bytes, 20)}")
         } catch (e: Exception) {
             log("写请求失败 ${e.message}")
+        }
+    }
+
+    /** JK-BMS 要求握手：BMS 发 AA 55 90 EB C8 01 01… 时原样回写前 20 字节。 */
+    private fun handleHandshake(value: ByteArray) {
+        if (value.size >= 6 &&
+            value[0] == 0xAA.toByte() && value[1] == 0x55.toByte() &&
+            value[2] == 0x90.toByte() && value[3] == 0xEB.toByte()
+        ) {
+            val n = minOf(value.size, 20)
+            val frame = value.copyOf(n)
+            write(frame)
+            log("回握手 ${hex(frame, 20)}")
         }
     }
 
