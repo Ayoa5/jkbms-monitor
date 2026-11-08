@@ -28,7 +28,7 @@ class MainActivity : ComponentActivity() {
                 }
                 val launcher = rememberLauncherForActivityResult(
                     ActivityResultContracts.RequestMultiplePermissions()
-                ) { }
+                ) { granted -> if (granted.values.all { it }) vm.autoConnect() }
                 LaunchedEffect(Unit) { launcher.launch(perms) }
                 DashboardScreen(vm)
             }

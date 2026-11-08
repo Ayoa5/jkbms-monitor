@@ -82,6 +82,7 @@ object JkProtocol {
         val protoBits = u32(frame, 138 + off)
         val soc = frame.getOrZero(141 + off).toInt() and 0xFF
         val remainAh = u32(frame, 142 + off) / 1000f
+        val nominalAh = u32(frame, 146 + off) / 1000f
         val cycles = u32(frame, 150 + off)
         val soh = frame.getOrZero(158 + off).toInt() and 0xFF
         val chargeFet = frame.getOrZero(166 + off).toInt() and 0xFF
@@ -91,7 +92,7 @@ object JkProtocol {
         return BmsData(
             socPercent = soc.toFloat(),
             remainingAh = remainAh,
-            fullAh = if (soh > 0) remainAh * 100f / soh else 0f,
+            fullAh = if (nominalAh > 0f) nominalAh else remainAh,
             totalVoltage = totalV,
             current = current,
             mosTemp = mos,
@@ -103,7 +104,7 @@ object JkProtocol {
             charging = current > 0.3f,
             discharging = current < -0.3f,
             balancing = balanceCurrent > 0.05f,
-            protectionActive = protoBits != 0L,
+            protectionActive = false,
         )
     }
 

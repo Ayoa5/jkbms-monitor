@@ -93,7 +93,7 @@ class BleManager(private val context: Context) {
             stopScan()
             onStatus?.invoke(if (found.isEmpty()) "未发现设备" else "发现 ${found.size} 个设备")
             log("扫描结束，共 ${found.size} 个")
-        }, 10000)
+        }, 5000)
     }
 
     fun stopScan() {

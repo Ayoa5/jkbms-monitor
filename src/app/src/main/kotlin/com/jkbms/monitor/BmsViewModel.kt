@@ -18,7 +18,8 @@ class BmsViewModel(app: Application) : AndroidViewModel(app) {
         private set
     var devices by mutableStateOf<List<BleManager.DeviceItem>>(emptyList())
         private set
-    var fullRangeKm by mutableStateOf(100f)
+    private val prefs = app.getSharedPreferences("jkbms", android.content.Context.MODE_PRIVATE)
+    var fullRangeKm by mutableStateOf(prefs.getFloat("fullRangeKm", 100f))
     var logs by mutableStateOf<List<String>>(emptyList())
         private set
 
@@ -30,10 +31,21 @@ class BmsViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun startScan() = ble.startScan()
-    fun connect(address: String) = ble.connect(address)
+    fun connect(address: String) {
+        prefs.edit().putString("lastAddress", address).apply()
+        ble.connect(address)
+    }
+
+    fun autoConnect() {
+        prefs.getString("lastAddress", null)?.let { ble.connect(it) }
+    }
     fun disconnect() = ble.disconnect()
 
-    fun setFullRange(km: Float) { fullRangeKm = km.coerceIn(1f, 2000f) }
+    fun setFullRange(km: Float) {
+        val v = km.coerceIn(1f, 2000f)
+        fullRangeKm = v
+        prefs.edit().putFloat("fullRangeKm", v).apply()
+    }
 
     override fun onCleared() {
         super.onCleared()
