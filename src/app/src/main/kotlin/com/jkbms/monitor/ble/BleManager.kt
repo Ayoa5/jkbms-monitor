@@ -53,6 +53,7 @@ class BleManager(private val context: Context) {
     private var notifyChar: BluetoothGattCharacteristic? = null
     private var writeChar: BluetoothGattCharacteristic? = null
     private var scanning = false
+    private var lastDataTime = 0L
 
     private fun log(msg: String) {
         Log.d("JkBmsBle", msg)
@@ -193,15 +194,22 @@ class BleManager(private val context: Context) {
 
     private fun scheduleRequest() {
         handler.removeCallbacksAndMessages(null)
-        val runnable = object : Runnable {
-            override fun run() {
-                // 先 0x97，300ms 后 0x96，1.5s 一轮（比 2.5s 更快刷新）
+        // 只请求一次：BMS 收到 0x96 后会持续主动推送 0x02（不重复请求，避免蜂鸣器一直响/把 BMS 拖慢）
+        write(JkProtocol.REQUEST_DEVICE_INFO)
+        handler.postDelayed({ write(JkProtocol.REQUEST_CELL_INFO) }, 300)
+        handler.postDelayed(watchdog, 4000)
+    }
+
+    /** 看门狗：BMS 正常会持续推 0x02；若 5 秒没有任何数据，才补发一次请求。 */
+    private val watchdog = object : Runnable {
+        override fun run() {
+            if (System.currentTimeMillis() - lastDataTime > 5000) {
+                log("看门狗：5s 无数据，补发请求")
                 write(JkProtocol.REQUEST_DEVICE_INFO)
                 handler.postDelayed({ write(JkProtocol.REQUEST_CELL_INFO) }, 300)
-                handler.postDelayed(this, 1500)
             }
+            handler.postDelayed(this, 3000)
         }
-        handler.postDelayed(runnable, 400)
     }
 
     private fun write(bytes: ByteArray) {
@@ -262,6 +270,7 @@ class BleManager(private val context: Context) {
             repeat(total) { if (rx.isNotEmpty()) rx.removeAt(0) }
             log("帧 ${frame.size}B type=${frame.getOrNull(4)} ${hex(frame, 20)}")
             JkProtocol.parseCellInfo(frame)?.let { d ->
+                lastDataTime = System.currentTimeMillis()
                 log("解析 V=%.2f I=%.1f SOC=%d rem=%.1f cyc=%d soh=%d cells=%d".format(
                     d.totalVoltage, d.current, d.socPercent.toInt(), d.remainingAh, d.cycleCount, d.sohPercent.toInt(), d.cellCount))
                 onData?.invoke(d)
