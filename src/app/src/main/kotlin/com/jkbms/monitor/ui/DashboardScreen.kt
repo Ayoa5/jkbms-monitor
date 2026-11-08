@@ -98,11 +98,10 @@ fun DashboardScreen(vm: BmsViewModel) {
             } else {
                 HeroCard(data, vm.fullRangeKm) { showRangeDialog = true }
                 MetricRow(data)
-                CellCard(data)
+                AvgCellRow(data)
                 TempProtectRow(data)
                 Footer(data)
             }
-            LogPanel(vm.logs)
         }
     }
 
@@ -247,6 +246,30 @@ private fun MetricCard(label: String, value: String, unit: String, modifier: Mod
             Row(verticalAlignment = Alignment.Bottom) {
                 Text(value, fontSize = 17.sp, fontWeight = FontWeight.Medium)
                 Text(" $unit", fontSize = 11.sp, color = Gray)
+            }
+        }
+    }
+}
+
+@Composable
+private fun AvgCellRow(data: BmsData) {
+    val avg = if (data.cellCount > 0) data.cellVoltages.average().toFloat() else 0f
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        MetricCard("平均电芯电压", "%.3f".format(avg), "V", Modifier.weight(1f))
+        MetricCard("最大压差", "${data.deltaMv}", "mV", Modifier.weight(1f))
+        MiCard(modifier = Modifier.weight(1f)) {
+            Column(Modifier.padding(10.dp)) {
+                Text("状态", fontSize = 11.sp, color = Gray)
+                Text(
+                    data.statusText,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = when {
+                        data.charging -> Color(0xFF185FA5)
+                        data.discharging -> GreenDark
+                        else -> Gray
+                    },
+                )
             }
         }
     }
