@@ -23,6 +23,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -68,6 +69,7 @@ private fun MiCard(modifier: Modifier = Modifier, content: @Composable () -> Uni
 fun DashboardScreen(vm: BmsViewModel) {
     val data = vm.data
     var showRangeDialog by remember { mutableStateOf(false) }
+    var showCells by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -98,7 +100,7 @@ fun DashboardScreen(vm: BmsViewModel) {
             } else {
                 HeroCard(data, vm.fullRangeKm) { showRangeDialog = true }
                 MetricRow(data)
-                AvgCellRow(data)
+                AvgCellRow(data) { showCells = true }
                 TempProtectRow(data)
                 Footer(data)
             }
@@ -107,6 +109,9 @@ fun DashboardScreen(vm: BmsViewModel) {
 
     if (showRangeDialog) {
         RangeDialog(vm) { showRangeDialog = false }
+    }
+    if (showCells && data != null) {
+        CellsSheet(data) { showCells = false }
     }
 }
 
@@ -252,10 +257,19 @@ private fun MetricCard(label: String, value: String, unit: String, modifier: Mod
 }
 
 @Composable
-private fun AvgCellRow(data: BmsData) {
+private fun AvgCellRow(data: BmsData, onShowCells: () -> Unit) {
     val avg = if (data.cellCount > 0) data.cellVoltages.average().toFloat() else 0f
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        MetricCard("平均电芯电压", "%.3f".format(avg), "V", Modifier.weight(1f))
+        MiCard(modifier = Modifier.weight(1f).clickable { onShowCells() }) {
+            Column(Modifier.padding(10.dp)) {
+                Text("平均电芯电压", fontSize = 11.sp, color = Gray)
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text("%.3f".format(avg), fontSize = 17.sp, fontWeight = FontWeight.Medium)
+                    Text(" V", fontSize = 11.sp, color = Gray)
+                }
+                Text("点击看各电芯 ›", fontSize = 10.sp, color = MaterialTheme.colorScheme.primary)
+            }
+        }
         MetricCard("最大压差", "${data.deltaMv}", "mV", Modifier.weight(1f))
         MiCard(modifier = Modifier.weight(1f)) {
             Column(Modifier.padding(10.dp)) {
@@ -270,6 +284,47 @@ private fun AvgCellRow(data: BmsData) {
                         else -> Gray
                     },
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CellsSheet(data: BmsData, onDismiss: () -> Unit) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 28.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("电芯电压 · ${data.cellCount}S", fontSize = 15.sp, fontWeight = FontWeight.Medium)
+                Row {
+                    Text("压差 ", fontSize = 12.sp, color = Gray)
+                    Text("${data.deltaMv} mV", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Amber)
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+            val rows = (data.cellCount + 3) / 4
+            for (r in 0 until rows) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    for (c in 0 until 4) {
+                        val idx = r * 4 + c
+                        if (idx < data.cellCount) {
+                            CellCell(idx, data.cellVoltages[idx], data.maxCell, data.minCell, Modifier.weight(1f))
+                        } else {
+                            Spacer(Modifier.weight(1f))
+                        }
+                    }
+                }
+                if (r < rows - 1) Spacer(Modifier.height(6.dp))
+            }
+            Spacer(Modifier.height(10.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Row {
+                    Text("最高 ", fontSize = 11.sp, color = Gray)
+                    Text("C${data.maxCellIndex} %.3fV".format(data.maxCell), fontSize = 11.sp, fontWeight = FontWeight.Medium, color = GreenDark)
+                }
+                Row {
+                    Text("最低 ", fontSize = 11.sp, color = Gray)
+                    Text("C${data.minCellIndex} %.3fV".format(data.minCell), fontSize = 11.sp, fontWeight = FontWeight.Medium, color = Red)
+                }
             }
         }
     }
