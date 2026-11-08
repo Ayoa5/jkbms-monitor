@@ -80,10 +80,10 @@ object JkProtocol {
         val t2 = tempAt(frame, 132 + off)
         val mos = tempAt(frame, 134 + off)
         val protoBits = u32(frame, 138 + off)
-        val soc = frame.getOrZero(142 + off).toInt() and 0xFF
-        val remainAh = u32(frame, 146 + off) / 1000f
-        val cycles = u32(frame, 158 + off)
-        val soh = frame.getOrZero(162 + off).toInt() and 0xFF
+        val soc = frame.getOrZero(141 + off).toInt() and 0xFF
+        val remainAh = u32(frame, 142 + off) / 1000f
+        val cycles = u32(frame, 150 + off)
+        val soh = frame.getOrZero(158 + off).toInt() and 0xFF
         val chargeFet = frame.getOrZero(166 + off).toInt() and 0xFF
         val dischargeFet = frame.getOrZero(167 + off).toInt() and 0xFF
         val balanceCurrent = i32(frame, 140 + off) / 1000f

@@ -261,7 +261,11 @@ class BleManager(private val context: Context) {
             val frame = ByteArray(total) { rx[it] }
             repeat(total) { if (rx.isNotEmpty()) rx.removeAt(0) }
             log("帧 ${frame.size}B type=${frame.getOrNull(4)} ${hex(frame, 20)}")
-            JkProtocol.parseCellInfo(frame)?.let { onData?.invoke(it) }
+            JkProtocol.parseCellInfo(frame)?.let { d ->
+                log("解析 V=%.2f I=%.1f SOC=%d rem=%.1f cyc=%d soh=%d cells=%d".format(
+                    d.totalVoltage, d.current, d.socPercent.toInt(), d.remainingAh, d.cycleCount, d.sohPercent.toInt(), d.cellCount))
+                onData?.invoke(d)
+            }
         }
     }
 
